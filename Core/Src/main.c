@@ -121,12 +121,19 @@ int main(void)
 
   printf("init OK\r\n");
 
+
+  while((HAL_SPI_GetState(&hspi1) != HAL_SPI_STATE_READY) && (HAL_SPI_GetState(&hspi2) != HAL_SPI_STATE_READY))
+  {}
+
+
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     HAL_Delay(1000);
     printf("delay\r\n");
+
     if(HAL_SPI_Receive(&hspi1, (uint8_t *)&aRxBuffer[0], DATA_LENGTH, 1000) != HAL_OK)
 	{
     	printf("error receive\r\n");
@@ -135,19 +142,34 @@ int main(void)
     {
     	printf("RX: %s\r\n\n",(char*)aRxBuffer);
 	}
+
+    memset(aRxBuffer, 0, DATA_LENGTH);
+
+    while((HAL_SPI_GetState(&hspi1) != HAL_SPI_STATE_READY) && (HAL_SPI_GetState(&hspi2) != HAL_SPI_STATE_READY))
+    {}
+
   }
   /* USER CODE END 3 */
 }
 
 
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	if(hspi->Instance == SPI1){
+
+		if(HAL_SPI_Receive_IT(&hspi2, (uint8_t *)&aRxBuffer[0], DATA_LENGTH) != HAL_OK)
+		{
+			printf("error receive\r\n");
+		}
+	}
+}
+
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-//  if(hspi->Instance == SPI2){
-//	  printf("SPI Slave transmited\r\n");
-//  }else if(hspi->Instance == SPI1){
+  if(hspi->Instance == SPI1){
 	  printf("SPI Master transmited\r\n");
-//  }
+  }
 }
 
 
@@ -163,10 +185,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	 {
 		 printf("button EXTI\r\n");
 
+#if 1
 		 if(HAL_SPI_Transmit_IT(&hspi2, aTxSlaveBuffer, sizeof(aTxSlaveBuffer)) != HAL_OK)
 		 {
 			 Error_Handler();
 		 }
+#endif
+
 	 }
 }
 
